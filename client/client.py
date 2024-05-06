@@ -31,8 +31,8 @@ PORT = 65432
 # Flag to indicate whether there is a delay
 delay = True
 
-# Counter for the number of delays
-delay_counter = 0
+# Delay number
+delay_number = 0
 
 # Counter for the number of songs
 song_counter = 1
@@ -251,7 +251,7 @@ def show_delay_player():
     Hides the user data entry and shows the song player.
 
     The function hides the ID entry, send, continue, back, and yes buttons, and the welcome label. It then shows a message
-    instructing the user to listen to salsa songs and mark the beat of the song using the space bar. The message is displayed
+    instructing the user to listen to songs and mark the beat of the song using the space bar. The message is displayed
     in the name label, and the length and current labels, and the play and stop buttons are placed below the message.
     """
     X_OFFSET = 140
@@ -270,7 +270,7 @@ def show_delay_player():
 
     song_name_label.place(x=x - X_OFFSET, y=y - Y_OFFSET)
     song_name_label["text"] = (
-        "During the experiment, we will ask you to listen to \n salsa songs and mark the beat of the song \n (in quarter notes) using the space bar on your \n keyboard. Practice the task of the experiment \n by listening to a fragment of salsa:"
+        "During the experiment, we will ask you to listen to \n songs and mark the beat of the song \n (in quarter notes) using the space bar on your \n keyboard. Practice the task of the experiment \n by listening to a fragment of a song:"
     )
     total_duration_label.place(x=x - 60, y=y)
     current_time_label.place(x=x - 60, y=y + 20)
@@ -313,7 +313,7 @@ def draw_music_player(event):
     play_button.place(x=x - BUTTON_X_OFFSET, y=y + BUTTON_Y_OFFSET)
     retry_button.place(x=x, y=y + BUTTON_Y_OFFSET)
     progress_label.place(x=x + PROGRESS_X_OFFSET, y=y + PROGRESS_Y_OFFSET)
-    progress_label["text"] = str(cont_song) + " / " + str(number_songs)
+    progress_label["text"] = str(song_counter) + " / " + str(number_songs)
 
 
 def draw_data_entry():
@@ -378,7 +378,7 @@ def show_next_song():
     song_name_label["text"] = "Thank you. Are you ready to listen to the next song?"
     yes_button.place(x=x + BUTTON_X_OFFSET, y=y - BUTTON_Y_OFFSET)
     progress_label.place(x=x + PROGRESS_X_OFFSET, y=y + PROGRESS_Y_OFFSET)
-    progress_label["text"] = str(cont_song) + " / " + str(number_songs)
+    progress_label["text"] = str(song_counter) + " / " + str(number_songs)
 
 
 def handle_space_press(event):
@@ -396,7 +396,7 @@ def handle_space_press(event):
         if event.char == " ":
             current_time = time.time()
             time_difference = current_time - start_time
-            beats.append(time_difference)
+            beat_times.append(time_difference)
             space_pressed = True
             space_press_time = 0
 

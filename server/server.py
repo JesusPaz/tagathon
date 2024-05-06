@@ -20,7 +20,7 @@ PORT = 65432  # Port to listen on (non-privileged ports are > 1023)
 DB_HOST = os.getenv("DB_HOST", "127.0.0.1")
 DB_USER = os.getenv("DB_USER", "root")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "your_password")
-DB_NAME = os.getenv("DB_NAME", "beatsalsa")
+DB_NAME = os.getenv("DB_NAME", "beats_db")
 
 # Create a new connection pool
 pool = Pool(host=DB_HOST, user=DB_USER, password=DB_PASSWORD, db=DB_NAME)
