@@ -6,7 +6,8 @@ A module for handling server operations.
 # Standard library imports
 import os
 import socket
-from datetime import datetime
+import traceback
+from datetime import datetime, timezone
 from random import randint
 
 # Third party imports
@@ -130,21 +131,24 @@ def validate_user(user_id):
         with connection.cursor() as cursor:
             # Select the validation dates for the user
             select_query = "SELECT `VALIDATION_DATES` FROM `users` WHERE `USER_ID`=%s"
-            cursor.execute(select_query, user_id)
+            cursor.execute(select_query, (user_id,))
             query = cursor.fetchone()
 
+            # If the query didn't find a user, return False
+            if query is None:
+                print(f"No user found with ID {user_id}")
+                return False
+
             # Get the current date and time
-            now = datetime.now().utcnow()
+            now = datetime.now(timezone.utc)
             current_date = now.strftime("%Y-%m-%d %H:%M:%S")
 
             # Update the validation dates for the user
             data = ""
-            if query[0] == "":
+            if query["VALIDATION_DATES"] == "":
                 data = current_date
             else:
-                for i in query:
-                    data += i + ","
-                data += current_date
+                data = query["VALIDATION_DATES"] + "," + current_date
 
             update_query = (
                 "UPDATE `users` SET `VALIDATION_DATES`=%s WHERE `USER_ID`= %s"
@@ -158,6 +162,7 @@ def validate_user(user_id):
 
     except Exception as e:
         print(f"Failed to validate user: {e}")
+        print(traceback.format_exc())
         return False
 
     finally:
@@ -190,11 +195,11 @@ def select_songs(user_id):
                 song_index = randint(0, len(songs) - 1)
 
                 song = songs[song_index]
-                song_id = song[0]
-                repetitions = song[2]
-                user_1 = song[3]
-                user_2 = song[5]
-                user_3 = song[7]
+                song_id = song["SONG_ID"]
+                repetitions = song["REPEATS"]
+                user_1 = song["USER_1"]
+                user_2 = song["USER_2"]
+                user_3 = song["USER_3"]
 
                 if (
                     repetitions == 0
@@ -216,6 +221,7 @@ def select_songs(user_id):
 
     except Exception as e:
         print(f"Failed to select song: {e}")
+        print(traceback.format_exc())
 
     finally:
         # Return the connection to the pool
@@ -241,15 +247,16 @@ def get_song_id(song_name):
         with connection.cursor() as cursor:
             # Select the ID of the song
             select_query = "SELECT `SONG_ID` FROM `song_dispatch` WHERE `SONG_NAME`=%s"
-            cursor.execute(select_query, song_name)
+            cursor.execute(select_query, (song_name,))
             query = cursor.fetchone()
 
             if query is not None:
-                print(query[0])
-                return query[0]
+                print(query["SONG_ID"])
+                return query["SONG_ID"]
 
     except Exception as e:
         print(f"Failed to get song ID: {e}")
+        print(traceback.format_exc())
 
     finally:
         # Return the connection to the pool
@@ -361,6 +368,7 @@ def user_exists(user_id):
 
     except Exception as e:
         print(f"Failed to check if user exists: {e}")
+        print(traceback.format_exc())
 
     finally:
         # Return the connection to the pool
@@ -390,11 +398,12 @@ def get_song_name(id_song):
             query = cursor.fetchone()
 
             if query is not None:
-                print(query[0])
-                return query[0]
+                print(query["SONG_NAME"])
+                return query["SONG_NAME"]
 
     except Exception as e:
         print(f"Failed to get song name: {e}")
+        print(traceback.format_exc())
 
     finally:
         # Return the connection to the pool
