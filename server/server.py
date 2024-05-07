@@ -26,15 +26,15 @@ DB_NAME = os.getenv("DB_NAME", "beats_db")
 pool = Pool(host=DB_HOST, user=DB_USER, password=DB_PASSWORD, db=DB_NAME)
 
 
-def insert_beat(id_cancion, id_usuario, beats, delay):
+def insert_beat(song_id, user_id, beats, delay):
     # Get a connection from the pool
     connection = pool.get_conn()
 
     try:
         with connection.cursor() as cursor:
             # Create a new record
-            sql = "INSERT INTO `databeats` (`FK_ID_CANCION`, `FK_CEDULA_USUARIO`, `BEATS`, `DELAY`, `FECHA`) VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP)"
-            cursor.execute(sql, (id_cancion, id_usuario, beats, delay))
+            sql = "INSERT INTO `databeats` (`FK_SONG_ID`, `FK_USER_ID`, `BEATS`, `DELAY`, `DATE`) VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP)"
+            cursor.execute(sql, (song_id, user_id, beats, delay))
 
         # connection is not autocommit by default. So you must commit to save
         # your changes.
@@ -90,15 +90,15 @@ def update_usr_song(song_id, user_id, repetition, user_num):
     try:
         with connection.cursor() as cursor:
             # Create a base SQL query
-            sql = "UPDATE `despacho_cancion` SET `REPETICIONES`=%s,`USUARIO_"
+            sql = "UPDATE `song_dispatch` SET `REPEATS`=%s,`USER_"
 
             # Append the different parts based on the user_num value
             if user_num == 1:
-                sql += "1`=%s,`FECHA_1`=CURRENT_TIMESTAMP WHERE `ID_CANCION`=%s"
+                sql += "1`=%s,`DATE_1`=CURRENT_TIMESTAMP WHERE `SONG_ID`=%s"
             elif user_num == 2:
-                sql += "2`=%s,`FECHA_2`=CURRENT_TIMESTAMP WHERE `ID_CANCION`=%s"
+                sql += "2`=%s,`DATE_2`=CURRENT_TIMESTAMP WHERE `SONG_ID`=%s"
             elif user_num == 3:
-                sql += "3`=%s,`FECHA_3`=CURRENT_TIMESTAMP WHERE `ID_CANCION`=%s"
+                sql += "3`=%s,`DATE_3`=CURRENT_TIMESTAMP WHERE `SONG_ID`=%s"
 
             cursor.execute(sql, (repetition, user_id, song_id))
 
@@ -129,9 +129,7 @@ def validate_user(user_id):
     try:
         with connection.cursor() as cursor:
             # Select the validation dates for the user
-            select_query = (
-                "SELECT `FECHAS_VALIDACION` FROM `usuarios` WHERE `CEDULA_USUARIO`=%s"
-            )
+            select_query = "SELECT `VALIDATION_DATES` FROM `users` WHERE `USER_ID`=%s"
             cursor.execute(select_query, user_id)
             query = cursor.fetchone()
 
@@ -148,7 +146,9 @@ def validate_user(user_id):
                     data += i + ","
                 data += current_date
 
-            update_query = "UPDATE `usuarios` SET `FECHAS_VALIDACION`=%s WHERE `CEDULA_USUARIO`= %s"
+            update_query = (
+                "UPDATE `users` SET `VALIDATION_DATES`=%s WHERE `USER_ID`= %s"
+            )
             cursor.execute(update_query, (data, user_id))
 
             # Commit the changes
@@ -181,7 +181,7 @@ def select_songs(user_id):
     try:
         with connection.cursor() as cursor:
             # Select the songs with less than 3 repetitions
-            select_query = "SELECT * FROM `despacho_cancion` WHERE `REPETICIONES`<3"
+            select_query = "SELECT * FROM `song_dispatch` WHERE `REPEATS`<3"
             cursor.execute(select_query)
             songs = cursor.fetchall()
 
@@ -240,9 +240,7 @@ def get_song_id(song_name):
     try:
         with connection.cursor() as cursor:
             # Select the ID of the song
-            select_query = (
-                "SELECT `ID_CANCION` FROM `despacho_cancion` WHERE `NOMBRE_CANCION`=%s"
-            )
+            select_query = "SELECT `SONG_ID` FROM `song_dispatch` WHERE `SONG_NAME`=%s"
             cursor.execute(select_query, song_name)
             query = cursor.fetchone()
 
@@ -303,7 +301,7 @@ def save_handler(save):
     Handle the save operation for a song.
 
     Parameters:
-    save (str): The save data in the format "idCancion;idUsuario;Beats;Delay".
+    save (str): The save data in the format "song_id;user_id;beats;delay".
 
     Returns:
     None
@@ -311,8 +309,8 @@ def save_handler(save):
     try:
         data = save.split(";")
         song_parts = data[1].split(".")
-        id_cancion = get_song_id(song_parts[0])
-        id_usuario = data[2]
+        song_id = get_song_id(song_parts[0])
+        user_id = data[2]
         beats = data[5]
         delay = data[3]
         sum_recv = data[4]
@@ -321,17 +319,17 @@ def save_handler(save):
         print(sum_beats(beats))
 
         if str(sum_recv) == str(sum_beats(beats)):
-            insert_beat(id_cancion, id_usuario, beats, delay)
-            msg = f"Beats from song {id_cancion}, usr {id_usuario} saved"
+            insert_beat(song_id, user_id, beats, delay)
+            msg = f"Beats from song {song_id}, usr {user_id} saved"
             print(msg)
         else:
             print(
                 "--------------------------ERROR: Check Sum Wrong -------------------------"
             )
-            insert_beat(id_cancion, id_usuario, beats, delay)
-            msg = f"Beats from song {id_cancion}, usr {id_usuario} saved"
+            insert_beat(song_id, user_id, beats, delay)
+            msg = f"Beats from song {song_id}, usr {user_id} saved"
             print(msg)
-            write_log(f"ID_SONG: {id_cancion} ID_USER: {id_usuario} BEATS: {beats}")
+            write_log(f"ID_SONG: {song_id} ID_USER: {user_id} BEATS: {beats}")
 
     except Exception as e:
         print(f"Failed to save: {e}")
@@ -355,9 +353,7 @@ def user_exists(user_id):
     try:
         with connection.cursor() as cursor:
             # Check if the user exists
-            select_query = (
-                "SELECT `CEDULA_USUARIO` FROM `usuarios` WHERE `CEDULA_USUARIO`=%s"
-            )
+            select_query = "SELECT `USER_ID` FROM `users` WHERE `USER_ID`=%s"
             cursor.execute(select_query, user_id)
             query = cursor.fetchone()
 
@@ -389,9 +385,7 @@ def get_song_name(id_song):
     try:
         with connection.cursor() as cursor:
             # Select the name of the song
-            select_query = (
-                "SELECT `NOMBRE_CANCION` FROM `despacho_cancion` WHERE `ID_CANCION`=%s"
-            )
+            select_query = "SELECT `SONG_NAME` FROM `song_dispatch` WHERE `SONG_ID`=%s"
             cursor.execute(select_query, id_song)
             query = cursor.fetchone()
 
@@ -409,12 +403,12 @@ def get_song_name(id_song):
     return None
 
 
-def insert_delay(id_usuario, beats, delay):
+def insert_delay(user_id, beats, delay):
     """
     Insert a delay record into the database.
 
     Parameters:
-    id_usuario (int): The user ID.
+    user_id (int): The user ID.
     beats (str): The beats message.
     delay (str): The delay value.
 
@@ -427,8 +421,8 @@ def insert_delay(id_usuario, beats, delay):
     try:
         with connection.cursor() as cursor:
             # Insert a new record
-            insert_query = "INSERT INTO `delay`(`CEDULA_USUARIO`, `BEATS_MSG`, `DELAY_VALUE`, `FECHA`) VALUES (%s, %s, %s, CURRENT_TIMESTAMP)"
-            cursor.execute(insert_query, (id_usuario, beats, delay))
+            insert_query = "INSERT INTO `delay`(`USER_ID`, `BEATS_MSG`, `DELAY_VALUE`, `DATE`) VALUES (%s, %s, %s, CURRENT_TIMESTAMP)"
+            cursor.execute(insert_query, (user_id, beats, delay))
 
         # Commit the transaction
         connection.commit()
