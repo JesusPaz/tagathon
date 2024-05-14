@@ -394,7 +394,7 @@ def get_song_name(id_song):
         with connection.cursor() as cursor:
             # Select the name of the song
             select_query = "SELECT `SONG_NAME` FROM `song_dispatch` WHERE `SONG_ID`=%s"
-            cursor.execute(select_query, id_song)
+            cursor.execute(select_query, (id_song,))
             query = cursor.fetchone()
 
             if query is not None:
@@ -476,15 +476,16 @@ def start_handler(msg):
     msg (str): The user ID.
 
     Returns:
-    str: The song ID and name if the user exists, or "INVALID" if the user does not exist.
+    str: The song ID and name if the user exists, or "INVALID" if the user does not exist or there are no more songs.
     """
     try:
         user_id = int(msg)
         if user_exists(user_id):
             validate_user(user_id)
             song_id = select_songs(user_id)
+            if song_id is None:
+                return "song_id;NO_MORE_SONGS"
             song_name = get_song_name(song_id)
-
             if song_name is not None:
                 return f"song_id;{song_name}.mp3"
             else:
