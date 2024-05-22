@@ -32,7 +32,7 @@ PORT = 65432
 NUMBER_SONGS = 2
 
 # Variables
-song_count = 0
+song_count = 1
 is_delayed = True
 delay_number = 0
 
@@ -286,8 +286,8 @@ def show_delay_message():
     current_time_label.place_forget()
     yes_button.place_forget()
 
-    welcome_label.place(x=x - X_OFFSET, y=y - Y_OFFSET)
-    welcome_label["text"] = (
+    song_name_label.place(x=x - 140, y=y - 120)
+    song_name_label["text"] = (
         "Thank you for practicing. Now click 'continue' \n to listen to the first song. Click 'back' if you want \n to practice the task once more."
     )
     continue_button.place(x=x - BUTTON_X_OFFSET, y=y - BUTTON_Y_OFFSET)
@@ -587,7 +587,7 @@ def handle_song_end():
                 messagebox.showerror(
                     message="Failed to connect to the server", title="Connection Error"
                 )
-            if song_count < NUMBER_SONGS:
+            if song_count <= NUMBER_SONGS:
                 song_count += 1  # Increment song_count after delay
                 show_next_song()  # Show message asking if ready for the next song
             else:
