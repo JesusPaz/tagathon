@@ -119,6 +119,41 @@ total_duration_label = tk.Label(ROOT, text="Total Duration : --:--")
 current_time_label = tk.Label(ROOT, text="Current Time : --:--")
 
 
+class PersistentClient:
+    def __init__(self, host, port):
+        self.host = host
+        self.port = port
+        self.socket = None
+        self.connect()
+
+    def connect(self):
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket.connect((self.host, self.port))
+        print("Connected to the server")
+
+    def send(self, message):
+        try:
+            self.socket.sendall(message.encode("utf-8"))
+        except socket.error as e:
+            print(f"Socket error on send: {e}")
+            self.connect()  # Reconnect if the connection was lost
+            self.socket.sendall(message.encode("utf-8"))
+
+    def receive(self, buffer_size=65507):
+        try:
+            return self.socket.recv(buffer_size).decode("utf-8")
+        except socket.error as e:
+            print(f"Socket error on receive: {e}")
+            self.connect()  # Reconnect if the connection was lost
+            return self.socket.recv(buffer_size).decode("utf-8")
+
+    def close(self):
+        self.socket.close()
+
+
+client = PersistentClient(HOST, PORT)
+
+
 def center_window(window):
     """
     Centers the given window on the screen.
@@ -188,43 +223,38 @@ def send_user_id(event):
     song_name = "Song Name"
 
     try:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.connect((HOST, PORT))
-            user_id_msg = f"start;{user_id}"
-            s.sendall(user_id_msg.encode("utf-8"))
-            data = s.recv(65507)
-            data = data.decode("utf-8")
-            aux = data.split(";")
+        user_id_msg = f"start;{user_id}"
+        client.send(user_id_msg)
+        data = client.receive()
+        aux = data.split(";")
 
-            if aux[0] == "song_id":
-                if aux[1] == "INVALID":
-                    print("INVALID")
-                    messagebox.showerror(
-                        message="This ID is not registered", title="ERROR"
-                    )
-                elif aux[1] == "NO_MORE_SONGS":
-                    print("No more songs available")
-                    messagebox.showinfo(
-                        message="This user has no more songs available",
-                        title="Information",
-                    )
-                else:
-                    song_name = aux[1]
-                    song_name_label["text"] = song_name
-
-                    if is_delayed:
-                        show_delay_player()
-                        load_song("delay_song.mp3")
-                    else:
-                        load_song(song_name)
-                        print(f"song: {song_name}")
-                        write_log(f"song: {song_name} user_id: {user_id}")
-                        draw_music_player(event)
-            else:
-                print("Unexpected response format")
-                messagebox.showerror(
-                    message="Unexpected response from the server", title="ERROR"
+        if aux[0] == "song_id":
+            if aux[1] == "INVALID":
+                print("INVALID")
+                messagebox.showerror(message="This ID is not registered", title="ERROR")
+            elif aux[1] == "NO_MORE_SONGS":
+                print("No more songs available")
+                messagebox.showinfo(
+                    message="This user has no more songs available",
+                    title="Information",
                 )
+            else:
+                song_name = aux[1]
+                song_name_label["text"] = song_name
+
+                if is_delayed:
+                    show_delay_player()
+                    load_song("delay_song.mp3")
+                else:
+                    load_song(song_name)
+                    print(f"song: {song_name}")
+                    write_log(f"song: {song_name} user_id: {user_id}")
+                    draw_music_player(event)
+        else:
+            print("Unexpected response format")
+            messagebox.showerror(
+                message="Unexpected response from the server", title="ERROR"
+            )
 
     except socket.error as e:
         print(f"Socket error: {e}")
@@ -523,9 +553,7 @@ def handle_song_end():
         write_log(message_to_send)
         # Send delay message to server
         try:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.connect((HOST, PORT))
-                s.sendall(message_to_send.encode("utf-8"))
+            client.send(message_to_send)
         except socket.error as e:
             print(f"Socket error: {e}")
             messagebox.showerror(
@@ -553,9 +581,7 @@ def handle_song_end():
         write_log(message_to_send)
         if are_beats_ok:
             try:
-                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                    s.connect((HOST, PORT))
-                    s.sendall(message_to_send.encode("utf-8"))
+                client.send(message_to_send)
             except socket.error as e:
                 print(f"Socket error: {e}")
                 messagebox.showerror(
@@ -563,7 +589,7 @@ def handle_song_end():
                 )
             if song_count < NUMBER_SONGS:
                 song_count += 1  # Increment song_count after delay
-                send_user_id(None)  # Request the next song from the server
+                show_next_song()  # Show message asking if ready for the next song
             else:
                 show_end_message()
         else:
@@ -653,13 +679,6 @@ def validate_beats(beats):
             count_minute_2 += 1
         elif 120 < beat <= 180:
             count_minute_3 += 1
-
-    print("Minute 1 : " + str(count_minute_1))
-    write_log("Minute 1 : " + str(count_minute_1))
-    print("Minute 2 : " + str(count_minute_2))
-    write_log("Minute 2 : " + str(count_minute_2))
-    print("Minute 3 : " + str(count_minute_3))
-    write_log("Minute 3 : " + str(count_minute_3))
 
     if 50 <= count_minute_1 <= 150 and 50 <= count_minute_2 <= 150:
         is_valid = True
@@ -794,7 +813,7 @@ ok_retry_button.bind("<Button-1>", draw_music_player)
 
 # Bind the space key to the space_feedback function
 ROOT.bind("<Key>", handle_space_press)
-
+ROOT.protocol("WM_DELETE_WINDOW", lambda: (client.close(), ROOT.destroy()))
 
 # Initialize Pygame and Tkinter before starting the main loop
 initialize_pygame()

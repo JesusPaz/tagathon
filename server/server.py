@@ -7,6 +7,7 @@ A module for handling server operations.
 import os
 import socket
 import traceback
+from threading import Thread
 from datetime import datetime, timezone
 from random import randint
 
@@ -22,6 +23,54 @@ DB_HOST = os.getenv("DB_HOST", "127.0.0.1")
 DB_USER = os.getenv("DB_USER", "root")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "your_password")
 DB_NAME = os.getenv("DB_NAME", "beats_db")
+
+
+class PersistentServer:
+    def __init__(self, host, port):
+        self.host = host
+        self.port = port
+        self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.server_socket.bind((self.host, self.port))
+        self.server_socket.listen()
+        print(f"Server listening on {self.host}:{self.port}")
+
+    def handle_client(self, connection, address):
+        with connection:
+            print("Connected by", address)
+            while True:
+                try:
+                    data = connection.recv(65507)
+                    if not data:
+                        break
+                    data = data.decode("utf-8")
+                    print(data)
+                    data_parts = data.split(";")
+                    if data_parts[0] == "start":
+                        print("Received ", data_parts[0])
+                        connection.sendall(start_handler(data_parts[1]).encode("utf-8"))
+                    elif data_parts[0] == "save":
+                        print("Received ", data_parts[0])
+                        save_handler(data)
+                    elif data_parts[0] == "delay":
+                        print("Received ", data_parts[0])
+                        delay_handler(data)
+                except Exception as e:
+                    print(f"Error handling client {address}: {e}")
+                    break
+
+    def start(self):
+        try:
+            while True:
+                connection, address = self.server_socket.accept()
+                client_thread = Thread(
+                    target=self.handle_client, args=(connection, address)
+                )
+                client_thread.start()
+        except KeyboardInterrupt:
+            print("Keyboard interrupt caught, exiting")
+        finally:
+            self.server_socket.close()
+
 
 # Create a new connection pool
 pool = Pool(host=DB_HOST, user=DB_USER, password=DB_PASSWORD, db=DB_NAME)
@@ -497,49 +546,5 @@ def start_handler(msg):
     return "song_id;INVALID"
 
 
-try:
-    # The server runs indefinitely until interrupted
-    while True:
-        # Create a new socket using the AF_INET address family (IPv4) and SOCK_STREAM socket type (TCP)
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
-            # Bind the socket to the specified host and port
-            server_socket.bind((HOST, PORT))
-            # Listen for incoming connections
-            server_socket.listen()
-            # Accept a connection; this will pause the script until a connection is received
-            connection, address = server_socket.accept()
-            # Use the connection
-            with connection:
-                print("Connected by", address)
-                # Keep receiving data from the client
-                while True:
-                    # Receive up to 65507 bytes of data from the client
-                    data = connection.recv(65507)
-                    # If no data was received, break the loop and wait for another connection
-                    if not data:
-                        break
-                    else:
-                        # Decode the data from bytes to a string
-                        data = data.decode("utf-8")
-                        print(data)
-                        # Split the data by semicolon
-                        data_parts = data.split(";")
-                        # Check the first part of the data to determine the action
-                        if data_parts[0] == "start":
-                            print("Received ", data_parts[0])
-                            # Handle the 'start' action and send the result back to the client
-                            connection.sendall(
-                                start_handler(data_parts[1]).encode("utf-8")
-                            )
-                        elif data_parts[0] == "save":
-                            print("Received ", data_parts[0])
-                            # Handle the 'save' action
-                            save_handler(data)
-                        elif data_parts[0] == "delay":
-                            print("Received ", data_parts[0])
-                            # Handle the 'delay' action
-                            delay_handler(data)
-
-# If a keyboard interrupt (Ctrl+C) is received, print a message and exit the script
-except KeyboardInterrupt:
-    print("Keyboard interrupt caught, exiting")
+server = PersistentServer(HOST, PORT)
+server.start()
