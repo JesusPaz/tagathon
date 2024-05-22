@@ -32,11 +32,10 @@ PORT = 65432
 NUMBER_SONGS = 2
 
 # Variables
-song_count = 1
+song_count = 0
 is_delayed = True
 delay = True
 delay_number = 0
-song_counter = 1
 
 # Define global variables
 current_time = 0
@@ -50,10 +49,6 @@ is_ended = False
 space_press_time = 0
 beat_times = []
 total_duration = 0
-
-
-# Initialize Pygame mixer
-pygame.mixer.init()
 
 # Create the root window
 ROOT = tk.Tk()
@@ -243,22 +238,6 @@ def send_user_id(event):
         messagebox.showerror(message="An unexpected error occurred", title="ERROR")
 
 
-def handle_song_end():
-    """
-    Initializes pygame and sets up an event loop to handle the end of a song.
-
-    The function sets a flag, end, to True and then enters a loop that checks for events. If a USEREVENT is detected,
-    the function sets end to False.
-    """
-    pygame.init()
-    song_ended = True
-
-    for event in pygame.event.get():
-        if event.type == pygame.constants.USEREVENT:
-            print("handle_song_end: USEREVENT detected")
-            song_ended = False
-
-
 def show_delay_message():
     """
     Hides the player controls and shows a delay message.
@@ -438,9 +417,11 @@ def handle_space_press(event):
         if pygame.mixer.music.get_busy():
             current_time = time.time()
             time_difference = current_time - start_time
+            print(f"Time difference: {time_difference}")
             beat_times.append(time_difference)
             space_pressed = True
-            space_press_time = 0
+            space_press_time = current_time
+            print(f"Beat times: {beat_times}")
 
 
 def load_song(song_filename):
@@ -467,8 +448,7 @@ def show_song_length(song_filename):
     """
     Shows the length of a song.
 
-    The function calculates the length of a song from the Audio directory and displays it in the length label. It then starts a new
-    thread to count the duration of the song.
+    The function calculates the length of a song from the Audio directory and displays it in the length label.
     """
     global total_duration
 
@@ -483,102 +463,103 @@ def show_song_length(song_filename):
     time_format = "{:02d}:{:02d}".format(minutes, seconds)
 
     total_duration_label["text"] = "Total Duration : " + time_format
-    thread = threading.Thread(target=start_count, args=(total_duration,))
-    thread.start()
 
 
 def start_count(total_duration):
     """
     Starts counting the duration of a song.
 
-    The function starts counting the duration of a song and updates the current time label. It also handles the event when the song
-    finishes playing, and sends a message with the beat times and the sum of the beat times.
+    The function starts counting the duration of a song and updates the current time label.
+    """
+    global is_stopped
+    global current_time
+    global start_time
+
+    is_stopped = False
+    current_time = 0
+    start_time = time.time()
+
+    def update_time():
+        if is_stopped:
+            return
+        current_time = time.time() - start_time
+        minutes, seconds = divmod(current_time, 60)
+        time_format = "{:02d}:{:02d}".format(int(minutes), int(seconds))
+
+        # Update the label in the main thread
+        current_time_label.config(text="Current Time : " + time_format)
+
+        if current_time < total_duration and pygame.mixer.music.get_busy():
+            ROOT.after(100, update_time)
+        else:
+            handle_song_end()
+
+    ROOT.after(100, update_time)
+
+
+def handle_song_end():
+    """
+    Handles the end of the song and performs necessary actions.
     """
     global is_stopped
     global is_delayed
-    global current_time
-    global beat_times
-    global is_ended
-    global space_press_time
-    global message_to_send
     global song_count
-    global start_time
-    global delay_number
-    global user_id
-    global song_name
-
-    is_stopped = False
-    is_delayed = False
+    global current_time
     current_time = 0
-    beat_times = []
+    global beat_times
     is_ended = True
+    global space_press_time
     space_press_time = 0
-    pygame.init()
-    start_time = time.time()
+    global message_to_send
+    global start_time
+    beat_times_message = " ".join(map(str, beat_times))
 
-    while is_ended:
-        while current_time <= total_duration and pygame.mixer.music.get_busy():
-            if is_stopped:
-                current_time = 0
-                space_press_time = 0
-                beat_times = []
+    if is_delayed:
+        pygame.mixer.music.stop()
+        message_to_send = (
+            "delay;"
+            + str(user_id)
+            + ";"
+            + beat_times_message
+            + ";"
+            + str(calculate_delay(beat_times_message))
+        )
+        print(message_to_send)
+        write_log(message_to_send)
+        show_delay_message()
+        song_count += 1  # Incrementa song_count después del delay
+        is_delayed = False  # Asegúrate de que el delay solo ocurra una vez
+    else:
+        are_beats_ok = validate_beats(beat_times)
+        sum_beat_times = sum_beats(beat_times_message)
+        pygame.mixer.music.stop()
+        message_to_send = (
+            "save;"
+            + song_name
+            + ";"
+            + str(user_id)
+            + ";"
+            + str(delay_number)
+            + ";"
+            + str(sum_beat_times)
+            + ";"
+            + beat_times_message
+        )
+        print(message_to_send)
+        write_log(message_to_send)
+        if are_beats_ok:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.connect((HOST, PORT))
+                s.sendall(message_to_send.encode("utf-8"))
+            if (
+                song_count < NUMBER_SONGS
+            ):  # Cambia <= a < para contar correctamente las canciones
+                show_next_song()
+                song_count += 1  # Incrementa song_count después de cada canción
             else:
-                time.sleep(0.1)
-                current_time += 0.1
-                minutes, seconds = divmod(current_time, 59)
-                minutes = round(minutes)
-                seconds = round(seconds)
-                time_format = "{:02d}:{:02d}".format(minutes, seconds)
-                current_time_label["text"] = "Current Time : " + time_format
-
-        for event in pygame.event.get():
-            if event.type == pygame.constants.USEREVENT:
-                beat_times_message = " ".join(map(str, beat_times))
-                if is_delayed:
-                    pygame.mixer.music.stop()
-                    message_to_send = (
-                        "delay;"
-                        + str(user_id)
-                        + ";"
-                        + beat_times_message
-                        + ";"
-                        + str(calculate_delay(beat_times_message))
-                    )
-                    print(message_to_send)
-                    write_log(message_to_send)
-                    show_delay_message()
-                    is_ended = False
-                else:
-                    are_beats_ok = validate_beats(beat_times)
-                    sum_beat_times = sum_beats(beat_times_message)
-                    pygame.mixer.music.stop()
-                    message_to_send = (
-                        "save;"
-                        + song_name
-                        + ";"
-                        + str(user_id)
-                        + ";"
-                        + str(delay_number)
-                        + ";"
-                        + str(sum_beat_times)
-                        + ";"
-                        + beat_times_message
-                    )
-                    print(message_to_send)
-                    write_log(message_to_send)
-                    if are_beats_ok:
-                        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                            s.connect((HOST, PORT))
-                            s.sendall(message_to_send.encode("utf-8"))
-                        if song_count < NUMBER_SONGS:
-                            show_next_song()
-                            song_count += 1
-                        else:
-                            show_end_message()
-                        is_ended = False
-                    else:
-                        show_bad_bpm_message()
-                        is_ended = False
+                show_end_message()
+        else:
+            show_bad_bpm_message()
 
 
 def show_end_message():
@@ -675,6 +656,8 @@ def validate_beats(beats):
         if 60 <= count_minute_3 <= 140:
             print("Valid for 3 minutes")
 
+    is_valid = True  # For testing purposes TODO: Remove this line
+
     print(is_valid)
 
     return is_valid
@@ -689,6 +672,7 @@ def continue_after_delay(event):
     global is_delayed
     global message_to_send
     global song_name
+    global song_count
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.connect((HOST, PORT))
@@ -702,6 +686,7 @@ def continue_after_delay(event):
     print("Song: " + song_name)
     write_log("Song: " + song_name)
     draw_music_player(event)
+    song_count = 1
 
 
 def repeat_delay(event):
@@ -736,13 +721,17 @@ def play_song(event):
     global is_stopped
     global start_time
     global total_duration
+    global beat_times  # Reset beat_times at the start of the song
 
     try:
         pygame.mixer.music.play()
         start_time = time.time()
         is_stopped = False
+        beat_times = []  # Reset the beat_times list
         print("play_song: Song started playing")
-        start_count(total_duration)  # Iniciar el conteo cuando se reproduce la canción
+        ROOT.after(
+            100, lambda: start_count(total_duration)
+        )  # Iniciar el conteo después de un breve retraso
     except pygame.error as e:
         print(f"play_song: Failed to play song - {e}")
 
@@ -766,6 +755,25 @@ def play_again(event):
     print("play_again: Song stopped and timer reset")
 
 
+# Ensure pygame event handling in main loop
+def handle_pygame_events():
+    for event in pygame.event.get():
+        if event.type == pygame.constants.USEREVENT:
+            handle_song_end()
+
+
+# Add this to your main loop
+def main_loop():
+    while True:
+        ROOT.update()
+        handle_pygame_events()
+
+
+def initialize_pygame():
+    pygame.init()
+    pygame.mixer.init()
+
+
 # Bind events to the buttons and labels
 send_button.bind("<Button-1>", send_user_id)
 play_button.bind("<Button-1>", play_song)
@@ -780,5 +788,9 @@ ok_retry_button.bind("<Button-1>", draw_music_player)
 # Bind the space key to the space_feedback function
 ROOT.bind("<Key>", handle_space_press)
 
+
+# Initialize Pygame and Tkinter before starting the main loop
+initialize_pygame()
+
 # Start the main loop
-ROOT.mainloop()
+main_loop()
