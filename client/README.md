@@ -3,10 +3,12 @@
 This README provides instructions for setting up the client application. Follow these steps to ensure everything works smoothly:
 
 ## Pre-requisites
+
 - Python installed on your system
 - Tkinter installed (required for GUI functionality)
 
 ### Installing Tkinter on Fedora or RPM-based Linux distributions
+
 ```bash
 sudo dnf install python3-tkinter
 ```
@@ -14,6 +16,7 @@ sudo dnf install python3-tkinter
 ## Installation Steps
 
 1. Install the required Python dependencies by running the following command in your terminal:
+
    ```bash
    pip install -r requirements.txt
    ```

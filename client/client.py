@@ -1,8 +1,3 @@
-"""
-client.py
-This file contains the client side of the application.
-"""
-
 # Standard library imports
 import os
 import time
@@ -80,13 +75,24 @@ width = ROOT.winfo_width()
 height = ROOT.winfo_height()
 
 # Calculate the center of the window
-x = width // 2
-y = height // 2
+x_center = width // 2
+y_center = height // 2
 
-# Place the label, button, and entry field in the window
-welcome_label.place(x=x - X_OFFSET, y=y - Y_OFFSET)
-send_button.place(x=x + 30, y=y - BUTTON_Y_OFFSET)
-user_id_entry.place(x=x - X_OFFSET, y=y)
+# Define offsets for more precise control
+label_y_offset = -50
+entry_y_offset = 0
+button_y_offset = 50
+
+# Place the label, entry field, and button in the center of the window
+welcome_label.place(
+    x=x_center - welcome_label.winfo_reqwidth() // 2, y=y_center + label_y_offset
+)
+user_id_entry.place(
+    x=x_center - user_id_entry.winfo_reqwidth() // 2, y=y_center + entry_y_offset
+)
+send_button.place(
+    x=x_center - send_button.winfo_reqwidth() // 2, y=y_center + button_y_offset
+)
 
 # Define constants for positioning
 X_OFFSET = 600
@@ -103,7 +109,7 @@ ok_retry_button = tk.Button(ROOT, text="Ok")
 
 # Create a hidden label
 hidden_label = tk.Label(ROOT, text="")
-hidden_label.place(x=x - X_OFFSET, y=y - Y_OFFSET)
+hidden_label.place(x=x_center - X_OFFSET, y=y_center - Y_OFFSET)
 
 # Create a label for the song name
 song_name_label = tk.Label(ROOT, text="Song Name")
@@ -249,7 +255,9 @@ def send_user_id(event):
                     load_song(song_name)
                     print(f"song: {song_name}")
                     write_log(f"song: {song_name} user_id: {user_id}")
+                    ROOT.update_idletasks()
                     draw_music_player(event)
+                    ROOT.update_idletasks()
         else:
             print("Unexpected response format")
             messagebox.showerror(
@@ -273,27 +281,42 @@ def show_delay_message():
     The function hides the play, retry buttons, and the name, length, and current labels. It then shows a message
     thanking the user for practicing and asking them to click 'continue' to hear the first song.
     """
-    X_OFFSET = 140
-    Y_OFFSET = 120
-    BUTTON_X_OFFSET = 100
-    BUTTON_Y_OFFSET = 30
-
+    # Hide player controls
     play_button.place_forget()
     retry_button.place_forget()
     total_duration_label.place_forget()
     current_time_label.place_forget()
 
-    song_name_label.place(x=x - X_OFFSET, y=y - Y_OFFSET)
+    # Update idle tasks to ensure the sizes of the widgets are updated
+    ROOT.update_idletasks()
+
+    # Calculate the center of the window
+    x_center = width // 2
+    y_center = height // 2
+
+    # Define offsets for more precise control
+    label_y_offset = -50
+    button_y_offset = 50
+
+    # Place the song_name_label in the center of the window
+    song_name_label.place(
+        x=x_center - song_name_label.winfo_reqwidth() // 2, y=y_center + label_y_offset
+    )
     song_name_label["text"] = (
         "Thank you for practicing. Now click 'continue' \n to listen to the first song."
     )
-    continue_button.place(x=x - BUTTON_X_OFFSET, y=y - BUTTON_Y_OFFSET)
+
+    # Place the continue_button in the center of the window
+    continue_button.place(
+        x=x_center - continue_button.winfo_reqwidth() // 2, y=y_center + button_y_offset
+    )
 
 
 def show_delay_player():
     """
     Shows the player for the delay song.
     """
+    # Hide the user entry and other buttons
     user_id_entry.config(state="disabled")
     user_id_entry.place_forget()
     send_button.config(state="disabled")
@@ -303,14 +326,52 @@ def show_delay_player():
     back_button.place_forget()
     yes_button.place_forget()
 
-    song_name_label.place(x=x - 140, y=y - 120)
+    # Update idle tasks to ensure the sizes of the widgets are updated
+    ROOT.update_idletasks()
+
+    # Calculate the center of the window
+    x_center = width // 2
+    y_center = height // 2
+
+    # Define offsets for more precise control
+    label_y_offset = -120
+    total_duration_y_offset = 0
+    current_time_y_offset = 20
+    play_button_y_offset = 60
+    retry_button_y_offset = 60
+
+    # Place the song_name_label in the center of the window
+    song_name_label.place(
+        x=(x_center - song_name_label.winfo_reqwidth() // 2) - 120,
+        y=y_center + label_y_offset,
+    )
     song_name_label["text"] = (
         "During the experiment, we will ask you to listen to \n songs and mark the beat of the song \n (in quarter notes) using the space bar on your \n keyboard. Practice the task of the experiment \n by listening to a fragment of a song:"
     )
-    total_duration_label.place(x=x - 60, y=y)
-    current_time_label.place(x=x - 60, y=y + 20)
-    play_button.place(x=x - 100, y=y + 60)
-    retry_button.place(x=x, y=y + 60)
+
+    # Place the total_duration_label in the center of the window
+    total_duration_label.place(
+        x=x_center - total_duration_label.winfo_reqwidth() // 2,
+        y=y_center + total_duration_y_offset,
+    )
+
+    # Place the current_time_label in the center of the window
+    current_time_label.place(
+        x=x_center - current_time_label.winfo_reqwidth() // 2,
+        y=y_center + current_time_y_offset,
+    )
+
+    # Place the play_button in the center of the window
+    play_button.place(
+        x=x_center - play_button.winfo_reqwidth() // 2 - 50,
+        y=y_center + play_button_y_offset,
+    )
+
+    # Place the retry_button in the center of the window
+    retry_button.place(
+        x=x_center - retry_button.winfo_reqwidth() // 2 + 50,
+        y=y_center + retry_button_y_offset,
+    )
 
     # Bind end of song event to handle_song_end
     pygame.mixer.music.set_endevent(pygame.constants.USEREVENT)
@@ -321,17 +382,11 @@ def draw_music_player(event):
     Hides the user data entry and shows the song player.
 
     The function hides the ID entry, send, continue, back, yes, and ok retry buttons, and the welcome label. It then shows a message
-    instructing the user to listen to the song and mark the beat using the space bar. If the user wants to repeat the song, they can
-    click 'retry'. The message is displayed in the name label, and the length and current labels, and the play and stop buttons are placed
+    instructing the user to listen to the song and mark the beat using the space bar. If the user wants to stop the song, they can
+    click 'stop'. The message is displayed in the name label, and the length and current labels, and the play and stop buttons are placed
     below the message. The progress label is placed at the bottom right of the window.
     """
-    X_OFFSET = 130
-    Y_OFFSET = 110
-    BUTTON_X_OFFSET = 100
-    BUTTON_Y_OFFSET = 60
-    PROGRESS_X_OFFSET = 450
-    PROGRESS_Y_OFFSET = 300
-
+    # Hide the user entry and other buttons
     user_id_entry.config(state="disabled")
     user_id_entry.place_forget()
     send_button.config(state="disabled")
@@ -342,16 +397,60 @@ def draw_music_player(event):
     yes_button.place_forget()
     ok_retry_button.place_forget()
 
-    song_name_label.place(x=x - X_OFFSET, y=y - Y_OFFSET)
+    # Update idle tasks to ensure the sizes of the widgets are updated
+    ROOT.update_idletasks()
+
+    # Calculate the center of the window
+    x_center = width // 2
+    y_center = height // 2
+
+    # Define offsets for more precise control
+    label_y_offset = -120
+    total_duration_y_offset = 0
+    current_time_y_offset = 20
+    play_button_y_offset = 60
+    retry_button_y_offset = 60
+    progress_label_x_offset = 450
+    progress_label_y_offset = 300
+
+    # Place the song_name_label in the center of the window
+    song_name_label.place(
+        x=x_center - song_name_label.winfo_reqwidth() // 2,
+        y=y_center + label_y_offset,
+    )
     song_name_label["text"] = (
         "Listen carefully to the song and mark the beat \n (in quarter notes) using the space bar on your \n keyboard. If for some reason, you want to stop \n the song, click 'stop'."
     )
-    total_duration_label.place(x=x - 60, y=y)
-    current_time_label.place(x=x - 60, y=y + 20)
+
+    # Place the total_duration_label in the center of the window
+    total_duration_label.place(
+        x=x_center - total_duration_label.winfo_reqwidth() // 2,
+        y=y_center + total_duration_y_offset,
+    )
+
+    # Place the current_time_label in the center of the window
+    current_time_label.place(
+        x=x_center - current_time_label.winfo_reqwidth() // 2,
+        y=y_center + current_time_y_offset,
+    )
     current_time_label["text"] = "Current Time : --:--"
-    play_button.place(x=x - BUTTON_X_OFFSET, y=y + BUTTON_Y_OFFSET)
-    retry_button.place(x=x, y=y + BUTTON_Y_OFFSET)
-    progress_label.place(x=x + PROGRESS_X_OFFSET, y=y + PROGRESS_Y_OFFSET)
+
+    # Place the play_button in the center of the window
+    play_button.place(
+        x=x_center - play_button.winfo_reqwidth() // 2 - 50,
+        y=y_center + play_button_y_offset,
+    )
+
+    # Place the retry_button in the center of the window
+    retry_button.place(
+        x=x_center - retry_button.winfo_reqwidth() // 2 + 50,
+        y=y_center + retry_button_y_offset,
+    )
+
+    # Place the progress_label in the bottom right of the window
+    progress_label.place(
+        x=x_center + progress_label_x_offset, y=y_center + progress_label_y_offset
+    )
     progress_label["text"] = str(song_count) + " / " + str(NUMBER_SONGS)
 
 
@@ -362,13 +461,7 @@ def draw_data_entry():
     The function hides the play, stop, yes, ok, continue, and back buttons, and the name, length, current, and progress labels. It then
     shows the ID entry and send button, and the welcome label is placed above the ID entry.
     """
-    X_OFFSET = 160
-    Y_OFFSET = 140
-    BUTTON_X_OFFSET = 30
-    BUTTON_Y_OFFSET = 75
-    ENTRY_X_OFFSET = 100
-    ENTRY_Y_OFFSET = 70
-
+    # Clear other elements
     play_button.place_forget()
     retry_button.place_forget()
     song_name_label.place_forget()
@@ -377,15 +470,25 @@ def draw_data_entry():
     yes_button.place_forget()
     progress_label.place_forget()
     ok_button.place_forget()
-
     continue_button.place_forget()
     back_button.place_forget()
 
+    # Configure and place the entry elements
     user_id_entry.config(state="normal")
     send_button.config(state="normal")
-    welcome_label.place(x=x - X_OFFSET, y=y - Y_OFFSET)
-    send_button.place(x=x + BUTTON_X_OFFSET, y=y - BUTTON_Y_OFFSET)
-    user_id_entry.place(x=x - ENTRY_X_OFFSET, y=y - ENTRY_Y_OFFSET)
+
+    # Calculate new positions for centered layout
+    label_x = (width - welcome_label.winfo_reqwidth()) // 2
+    label_y = height // 2 - 50
+    entry_x = (width - user_id_entry.winfo_reqwidth()) // 2
+    entry_y = label_y + 40
+    button_x = (width - send_button.winfo_reqwidth()) // 2
+    button_y = entry_y + 40
+
+    # Place the elements
+    welcome_label.place(x=label_x, y=label_y)
+    user_id_entry.place(x=entry_x, y=entry_y)
+    send_button.place(x=button_x, y=button_y)
 
 
 def show_next_song():
@@ -397,26 +500,43 @@ def show_next_song():
     the message. The progress label is placed at the bottom right of the window.
     """
 
-    X_OFFSET = 140
-    Y_OFFSET = 75
-    BUTTON_X_OFFSET = 0
-    BUTTON_Y_OFFSET = 40
-    PROGRESS_X_OFFSET = 450
-    PROGRESS_Y_OFFSET = 300
-
+    # Hide player controls
     play_button.place_forget()
     retry_button.place_forget()
     song_name_label.place_forget()
     total_duration_label.place_forget()
     current_time_label.place_forget()
-
     continue_button.place_forget()
     back_button.place_forget()
 
-    song_name_label.place(x=x - X_OFFSET, y=y - Y_OFFSET)
+    # Update idle tasks to ensure the sizes of the widgets are updated
+    ROOT.update_idletasks()
+
+    # Calculate the center of the window
+    x_center = width // 2
+    y_center = height // 2
+
+    # Define offsets for more precise control
+    label_y_offset = -75
+    yes_button_y_offset = 40
+    progress_label_x_offset = 450
+    progress_label_y_offset = 300
+
+    # Place the song_name_label in the center of the window
+    song_name_label.place(
+        x=x_center - song_name_label.winfo_reqwidth() // 2, y=y_center + label_y_offset
+    )
     song_name_label["text"] = "Thank you. Are you ready to listen to the next song?"
-    yes_button.place(x=x + BUTTON_X_OFFSET, y=y - BUTTON_Y_OFFSET)
-    progress_label.place(x=x + PROGRESS_X_OFFSET, y=y + PROGRESS_Y_OFFSET)
+
+    # Place the yes_button in the center of the window
+    yes_button.place(
+        x=x_center - yes_button.winfo_reqwidth() // 2, y=y_center + yes_button_y_offset
+    )
+
+    # Place the progress_label in the bottom right of the window
+    progress_label.place(
+        x=x_center + progress_label_x_offset, y=y_center + progress_label_y_offset
+    )
     progress_label["text"] = str(song_count) + " / " + str(NUMBER_SONGS)
 
 
@@ -601,20 +721,38 @@ def show_end_message():
 
     The function hides the player and shows an end message. It also shows an OK button.
     """
+    # Hide player controls
     play_button.place_forget()
     retry_button.place_forget()
     song_name_label.place_forget()
     total_duration_label.place_forget()
     current_time_label.place_forget()
-
     continue_button.place_forget()
     back_button.place_forget()
 
+    # Update idle tasks to ensure the sizes of the widgets are updated
+    ROOT.update_idletasks()
+
+    # Calculate the center of the window
+    x_center = width // 2
+    y_center = height // 2
+
+    # Define offsets for more precise control
+    label_y_offset = -75
+    ok_button_y_offset = -20
+
+    # Place the song_name_label in the center of the window
+    song_name_label.place(
+        x=x_center - song_name_label.winfo_reqwidth() // 2, y=y_center + label_y_offset
+    )
     song_name_label["text"] = (
         "Thank you very much for participating. You should take a 30-minute break \n to continue with the activity."
     )
-    song_name_label.place(x=x - 140, y=y - 75)
-    ok_button.place(x=x, y=y - 20)
+
+    # Place the ok_button in the center of the window
+    ok_button.place(
+        x=x_center - ok_button.winfo_reqwidth() // 2, y=y_center + ok_button_y_offset
+    )
 
 
 def restart(event):
@@ -638,22 +776,41 @@ def show_bad_bpm_message():
     """
     global song_name
 
+    # Hide player controls
     play_button.place_forget()
     retry_button.place_forget()
     song_name_label.place_forget()
     total_duration_label.place_forget()
     current_time_label.place_forget()
-
     continue_button.place_forget()
     back_button.place_forget()
 
+    # Update idle tasks to ensure the sizes of the widgets are updated
+    ROOT.update_idletasks()
+
+    # Calculate the center of the window
+    x_center = width // 2
+    y_center = height // 2
+
+    # Define offsets for more precise control
+    label_y_offset = -75
+    ok_button_y_offset = -20
+
+    # Place the song_name_label in the center of the window
+    song_name_label.place(
+        x=x_center - song_name_label.winfo_reqwidth() // 2, y=y_center + label_y_offset
+    )
     song_name_label["text"] = (
         "The data does not have the necessary quality, \n please listen to the song again."
     )
-    song_name_label.place(x=x - 90, y=y - 75)
 
-    ok_retry_button.place(x=x, y=y - 20)
+    # Place the ok_retry_button in the center of the window
+    ok_retry_button.place(
+        x=x_center - ok_retry_button.winfo_reqwidth() // 2,
+        y=y_center + ok_button_y_offset,
+    )
 
+    # Load the song
     load_song(song_name)
 
 
@@ -703,7 +860,9 @@ def continue_after_delay(event):
     load_song(song_name)
     print("Song: " + song_name)
     write_log("Song: " + song_name)
+    ROOT.update_idletasks()
     draw_music_player(event)
+    ROOT.update_idletasks()
 
 
 def repeat_delay(event):
@@ -812,6 +971,7 @@ ok_retry_button.bind("<Button-1>", draw_music_player)
 # Bind the space key to the space_feedback function
 ROOT.bind("<Key>", handle_space_press)
 ROOT.protocol("WM_DELETE_WINDOW", lambda: (client.close(), ROOT.destroy()))
+
 
 # Initialize Pygame and Tkinter before starting the main loop
 initialize_pygame()
