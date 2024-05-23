@@ -16,13 +16,17 @@ The repository contains the following directories:
 
 The server component handles communication between clients and the database. Follow these steps to set up and run the server:
 
-1. Navigate to the `server` directory.
-2. Install the required dependencies by running:
+1. Ensure that Python 3.12.3 is installed on your system.
+2. Navigate to the `server` directory.
+3. Install the required dependencies by running:
+
    ```bash
    pip install -r requirements.txt
    ```
-3. Configure the server's IP address and port number in the code if necessary.
-4. Start the server by running:
+
+4. Configure the server's IP address and port number in the code if necessary.
+5. Start the server by running:
+
    ```bash
    python server.py
    ```
@@ -39,17 +43,22 @@ The database component stores the necessary data for the application. Follow the
 
 The client component provides a user interface for interacting with the server. Follow these steps to set up and run the client application:
 
-1. Ensure that Python and Tkinter are installed on your system. Use the following command to install Tkinter on Fedora or RPM-based Linux distributions:
+1. Ensure that Python (v3.12.3) and Tkinter are installed on your system. Use the following command to install Tkinter on Fedora or RPM-based Linux distributions:
+
    ```bash
    sudo dnf install python3-tkinter
    ```
+
 2. Navigate to the `client` directory.
 3. Install the required dependencies by running:
+
    ```bash
    pip install -r requirements.txt
    ```
+
 4. Configure the server's IP address and port number in the code if necessary.
 5. Start the client application by running:
+
    ```bash
    python client.py
    ```
